@@ -5,7 +5,7 @@ It will keep move log.
 """
 
 
-class GameState:
+class state:
     def __init__(self):
         """
         Board is an 8x8 2d list, each element in list has 2 characters.

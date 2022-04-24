@@ -15,18 +15,20 @@ MOVE_LOG_PANEL_HEIGHT = BOARD_HEIGHT
 DIMENSION = 8
 SQUARE_SIZE = BOARD_HEIGHT // DIMENSION
 MAX_FPS = 15
-IMAGES = {}
 
-
-def loadImages():
-    """
-    Initialize a global directory of images.
-    This will be called exactly once in the main.
-    """
-    pieces = ['wp', 'wR', 'wN', 'wB', 'wK', 'wQ', 'bp', 'bR', 'bN', 'bB', 'bK', 'bQ']
-    for piece in pieces:
-        IMAGES[piece] = p.transform.scale(p.image.load("images/" + piece + ".png"), (SQUARE_SIZE, SQUARE_SIZE))
-
+#dictionary of images of pieces so that they can be later used
+images={'wp': p.transform.scale(p.image.load("images/" + 'wp' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'wR': p.transform.scale(p.image.load("images/" + 'wR' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'wN': p.transform.scale(p.image.load("images/" + 'wN' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'wB': p.transform.scale(p.image.load("images/" + 'wB' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'wK': p.transform.scale(p.image.load("images/" + 'wK' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'wQ': p.transform.scale(p.image.load("images/" + 'wQ' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'bp': p.transform.scale(p.image.load("images/" + 'bp' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'bR': p.transform.scale(p.image.load("images/" + 'bR' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'bN': p.transform.scale(p.image.load("images/" + 'bN' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'bB': p.transform.scale(p.image.load("images/" + 'bB' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'bK': p.transform.scale(p.image.load("images/" + 'bK' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'bQ': p.transform.scale(p.image.load("images/" + 'bQ' + ".png"), (SQUARE_SIZE, SQUARE_SIZE))}
 
 def main():
     """
@@ -37,11 +39,10 @@ def main():
     screen = p.display.set_mode((BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT))
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
-    game_state = ChessEngine.GameState()
+    game_state = ChessEngine.state()
     valid_moves = game_state.getValidMoves()
     move_made = False  # flag variable for when a move is made
     animate = False  # flag variable for when we should animate a move
-    loadImages()  # do this only once before while loop
     running = True
     square_selected = ()  # no square is selected initially, this will keep track of the last click of the user (tuple(row,col))
     player_clicks = []  # this will keep track of player clicks (two tuples)
@@ -132,7 +133,9 @@ def main():
             animate = False
             move_undone = False
 
-        drawGameState(screen, game_state, valid_moves, square_selected)
+        drawBoard(screen)
+        highlightSquares(screen, game_state, valid_moves, square_selected)
+        drawPieces(screen, game_state.board)
 
         if not game_over:
             drawMoveLog(screen, game_state, move_log_font)
@@ -151,29 +154,16 @@ def main():
         clock.tick(MAX_FPS)
         p.display.flip()
 
-
-def drawGameState(screen, game_state, valid_moves, square_selected):
-    """
-    Responsible for all the graphics within current game state.
-    """
-    drawBoard(screen)  # draw squares on the board
-    highlightSquares(screen, game_state, valid_moves, square_selected)
-    drawPieces(screen, game_state.board)  # draw pieces on top of those squares
-
-
+# draw squares on the board
 def drawBoard(screen):
-    """
-    Draw the squares on the board.
-    The top left square is always light.
-    """
     global colors
-    colors = [p.Color("white"), p.Color("gray")]
+    colors = [p.Color("white"), p.Color("yellow")]
     for row in range(DIMENSION):
         for column in range(DIMENSION):
             color = colors[((row + column) % 2)]
             p.draw.rect(screen, color, p.Rect(column * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
-
+#show the possible moves with the highlight
 def highlightSquares(screen, game_state, valid_moves, square_selected):
     """
     Highlight square selected and moves for piece selected.
@@ -199,7 +189,7 @@ def highlightSquares(screen, game_state, valid_moves, square_selected):
                 if move.start_row == row and move.start_col == col:
                     screen.blit(s, (move.end_col * SQUARE_SIZE, move.end_row * SQUARE_SIZE))
 
-
+# draw pieces on top of those squares
 def drawPieces(screen, board):
     """
     Draw the pieces on the board using the current game_state.board
@@ -208,7 +198,7 @@ def drawPieces(screen, board):
         for column in range(DIMENSION):
             piece = board[row][column]
             if piece != "--":
-                screen.blit(IMAGES[piece], p.Rect(column * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+                screen.blit(images[piece], p.Rect(column * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
 
 
 def drawMoveLog(screen, game_state, font):
@@ -274,9 +264,9 @@ def animateMove(move, screen, board, clock):
             if move.is_enpassant_move:
                 enpassant_row = move.end_row + 1 if move.piece_captured[0] == 'b' else move.end_row - 1
                 end_square = p.Rect(move.end_col * SQUARE_SIZE, enpassant_row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
-            screen.blit(IMAGES[move.piece_captured], end_square)
+            screen.blit(images[move.piece_captured], end_square)
         # draw moving piece
-        screen.blit(IMAGES[move.piece_moved], p.Rect(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
+        screen.blit(images[move.piece_moved], p.Rect(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
         p.display.flip()
         clock.tick(60)
 
