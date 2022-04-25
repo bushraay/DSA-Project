@@ -3,7 +3,7 @@ Handling the AI moves.
 """
 import random
 
-piece_score = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "p": 1}
+piece_score = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "P": 1}
 
 knight_scores = [[0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
                  [0.1, 0.3, 0.5, 0.5, 0.5, 0.5, 0.3, 0.1],
@@ -58,8 +58,8 @@ piece_position_scores = {"wN": knight_scores,
                          "bQ": queen_scores[::-1],
                          "wR": rook_scores,
                          "bR": rook_scores[::-1],
-                         "wp": pawn_scores,
-                         "bp": pawn_scores[::-1]}
+                         "wP": pawn_scores,
+                         "bP": pawn_scores[::-1]}
 
 CHECKMATE = 1000
 STALEMATE = 0
@@ -83,7 +83,7 @@ def findMoveNegaMaxAlphaBeta(game_state, valid_moves, depth, alpha, beta, turn_m
     max_score = -CHECKMATE
     for move in valid_moves:
         game_state.makeMove(move)
-        next_moves = game_state.getValidMoves()
+        next_moves = game_state.ValidMoves()
         score = -findMoveNegaMaxAlphaBeta(game_state, next_moves, depth - 1, -beta, -alpha, -turn_multiplier)
         if score > max_score:
             max_score = score

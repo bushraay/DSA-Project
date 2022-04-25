@@ -17,13 +17,13 @@ SQUARE_SIZE = BOARD_HEIGHT // DIMENSION
 MAX_FPS = 15
 
 #dictionary of images of pieces so that they can be later used
-images={'wp': p.transform.scale(p.image.load("images/" + 'wp' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+images={'wP': p.transform.scale(p.image.load("images/" + 'wp' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
         'wR': p.transform.scale(p.image.load("images/" + 'wR' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
         'wN': p.transform.scale(p.image.load("images/" + 'wN' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
         'wB': p.transform.scale(p.image.load("images/" + 'wB' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
         'wK': p.transform.scale(p.image.load("images/" + 'wK' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
         'wQ': p.transform.scale(p.image.load("images/" + 'wQ' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
-        'bp': p.transform.scale(p.image.load("images/" + 'bp' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
+        'bP': p.transform.scale(p.image.load("images/" + 'bp' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
         'bR': p.transform.scale(p.image.load("images/" + 'bR' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
         'bN': p.transform.scale(p.image.load("images/" + 'bN' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
         'bB': p.transform.scale(p.image.load("images/" + 'bB' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
@@ -40,7 +40,7 @@ def main():
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
     game_state = ChessEngine.state()
-    valid_moves = game_state.getValidMoves()
+    valid_moves = game_state.ValidMoves()
     move_made = False  # flag variable for when a move is made
     animate = False  # flag variable for when we should animate a move
     running = True
@@ -97,7 +97,7 @@ def main():
                     move_undone = True
                 if e.key == p.K_r:  # reset the game when 'r' is pressed
                     game_state = ChessEngine.GameState()
-                    valid_moves = game_state.getValidMoves()
+                    valid_moves = game_state.ValidMoves()
                     square_selected = ()
                     player_clicks = []
                     move_made = False
@@ -128,7 +128,7 @@ def main():
         if move_made:
             if animate:
                 animateMove(game_state.move_log[-1], screen, game_state.board, clock)
-            valid_moves = game_state.getValidMoves()
+            valid_moves = game_state.ValidMoves()
             move_made = False
             animate = False
             move_undone = False
@@ -157,7 +157,7 @@ def main():
 # draw squares on the board
 def drawBoard(screen):
     global colors
-    colors = [p.Color("white"), p.Color("yellow")]
+    colors = [p.Color("white"), p.Color(choice)]
     for row in range(DIMENSION):
         for column in range(DIMENSION):
             color = colors[((row + column) % 2)]
@@ -173,7 +173,7 @@ def highlightSquares(screen, game_state, valid_moves, square_selected):
         s = p.Surface((SQUARE_SIZE, SQUARE_SIZE))
         s.set_alpha(100)
         s.fill(p.Color('green'))
-        screen.blit(s, (last_move.end_col * SQUARE_SIZE, last_move.end_row * SQUARE_SIZE))
+        screen.blit(s, (last_move.end_C * SQUARE_SIZE, last_move.end_R * SQUARE_SIZE))
     if square_selected != ():
         row, col = square_selected
         if game_state.board[row][col][0] == (
@@ -186,8 +186,8 @@ def highlightSquares(screen, game_state, valid_moves, square_selected):
             # highlight moves from that square
             s.fill(p.Color('yellow'))
             for move in valid_moves:
-                if move.start_row == row and move.start_col == col:
-                    screen.blit(s, (move.end_col * SQUARE_SIZE, move.end_row * SQUARE_SIZE))
+                if move.start_R == row and move.start_C == col:
+                    screen.blit(s, (move.end_C * SQUARE_SIZE, move.end_R * SQUARE_SIZE))
 
 # draw pieces on top of those squares
 def drawPieces(screen, board):
@@ -247,23 +247,23 @@ def animateMove(move, screen, board, clock):
     Animating a move
     """
     global colors
-    d_row = move.end_row - move.start_row
-    d_col = move.end_col - move.start_col
+    d_row = move.end_R - move.start_R
+    d_col = move.end_C - move.start_C
     frames_per_square = 10  # frames to move one square
     frame_count = (abs(d_row) + abs(d_col)) * frames_per_square
     for frame in range(frame_count + 1):
-        row, col = (move.start_row + d_row * frame / frame_count, move.start_col + d_col * frame / frame_count)
+        row, col = (move.start_R + d_row * frame / frame_count, move.start_C + d_col * frame / frame_count)
         drawBoard(screen)
         drawPieces(screen, board)
         # erase the piece moved from its ending square
-        color = colors[(move.end_row + move.end_col) % 2]
-        end_square = p.Rect(move.end_col * SQUARE_SIZE, move.end_row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
+        color = colors[(move.end_R + move.end_C) % 2]
+        end_square = p.Rect(move.end_C * SQUARE_SIZE, move.end_R * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
         p.draw.rect(screen, color, end_square)
         # draw captured piece onto rectangle
         if move.piece_captured != '--':
             if move.is_enpassant_move:
-                enpassant_row = move.end_row + 1 if move.piece_captured[0] == 'b' else move.end_row - 1
-                end_square = p.Rect(move.end_col * SQUARE_SIZE, enpassant_row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
+                enpassant_row = move.end_R + 1 if move.piece_captured[0] == 'b' else move.end_R - 1
+                end_square = p.Rect(move.end_C * SQUARE_SIZE, enpassant_row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE)
             screen.blit(images[move.piece_captured], end_square)
         # draw moving piece
         screen.blit(images[move.piece_moved], p.Rect(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE))
@@ -272,4 +272,8 @@ def animateMove(move, screen, board, clock):
 
 
 if __name__ == "__main__":
+    choice=input("What color would you like your chess board to be in: (please enter all the lower case)")
+    # if choice not in p.color():
+    #     print("Invalid color")
+    #     choice = input("What color would you like your chess board to be in: (please enter all the lower case)")
     main()
