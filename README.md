@@ -1,7 +1,7 @@
 # DSA-Project
 
 
-A chess AI application learned by youtuber Eddie Sharick's videos. 
+A chess AI application made in python for our DSA project.It is the implementation of chess AI by youtuber Eddie Sharick's videos. 
 
 
 References:
