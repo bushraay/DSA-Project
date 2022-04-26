@@ -1,9 +1,8 @@
-"""
-Handling the AI moves.
-"""
+#Handling the AI moves.
 import random
 
-piece_score = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "P": 1}
+#king can never be captures so value does not matter
+pieceScore = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "P": 1}
 
 knight_scores = [[0.0, 0.1, 0.2, 0.2, 0.2, 0.2, 0.1, 0.0],
                  [0.1, 0.3, 0.5, 0.5, 0.5, 0.5, 0.3, 0.1],
@@ -50,6 +49,7 @@ pawn_scores = [[0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8],
                [0.25, 0.3, 0.3, 0.0, 0.0, 0.3, 0.3, 0.25],
                [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]]
 
+#it gives us more efficient way as positioning makes idfference in the power that a particular piece has such as knight near the center of board has more squares to control than one that's on the otside of the board
 piece_position_scores = {"wN": knight_scores,
                          "bN": knight_scores[::-1],
                          "wB": bishop_scores,
@@ -63,28 +63,30 @@ piece_position_scores = {"wN": knight_scores,
 
 CHECKMATE = 1000
 STALEMATE = 0
-DEPTH = 3
+DEPTH = 3 #increase but then it would take more time
 
 
 def findBestMove(game_state, valid_moves, return_queue):
     global next_move
     next_move = None
-    random.shuffle(valid_moves)
+    random.shuffle(valid_moves) #so that it does not always start with the first move found in the list and have more variety
     findMoveNegaMaxAlphaBeta(game_state, valid_moves, DEPTH, -CHECKMATE, CHECKMATE,
                              1 if game_state.white_to_move else -1)
     return_queue.put(next_move)
 
-
+#minimise opponent score and maximise our score
+#this is a combination of two algos: MinMAx and AlphaBeta Pruning, alphabeta pruning allows us to not visit the branches of the tree that we know can not be any better than our best possible score
+#depth is the depth of recurion
+#alpha: max possible score and bete: min possible score
 def findMoveNegaMaxAlphaBeta(game_state, valid_moves, depth, alpha, beta, turn_multiplier):
     global next_move
     if depth == 0:
         return turn_multiplier * scoreBoard(game_state)
-    # move ordering - implement later //TODO
     max_score = -CHECKMATE
     for move in valid_moves:
         game_state.makeMove(move)
-        next_moves = game_state.ValidMoves()
-        score = -findMoveNegaMaxAlphaBeta(game_state, next_moves, depth - 1, -beta, -alpha, -turn_multiplier)
+        next_moves = game_state.ValidMoves() #opponents moves
+        score = -findMoveNegaMaxAlphaBeta(game_state, next_moves, depth - 1, -beta, -alpha, -turn_multiplier) #because that is the worst score for us as it is called for the opponent
         if score > max_score:
             max_score = score
             if depth == DEPTH:
@@ -96,11 +98,8 @@ def findMoveNegaMaxAlphaBeta(game_state, valid_moves, depth, alpha, beta, turn_m
             break
     return max_score
 
-
+#Score the board. A positive score for white, a negative score for black.
 def scoreBoard(game_state):
-    """
-    Score the board. A positive score is good for white, a negative score is good for black.
-    """
     if game_state.checkmate:
         if game_state.white_to_move:
             return -CHECKMATE  # black wins
@@ -117,9 +116,9 @@ def scoreBoard(game_state):
                 if piece[1] != "K":
                     piece_position_score = piece_position_scores[piece][row][col]
                 if piece[0] == "w":
-                    score += piece_score[piece[1]] + piece_position_score
+                    score += pieceScore[piece[1]] + piece_position_score
                 if piece[0] == "b":
-                    score -= piece_score[piece[1]] + piece_position_score
+                    score -= pieceScore[piece[1]] + piece_position_score
 
     return score
 

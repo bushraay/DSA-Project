@@ -216,7 +216,6 @@ class state:
             if self.inCheck():
                 self.checkmate = True
             else:
-                # TODO stalemate on repeated moves
                 self.stalemate = True
         else:
             self.checkmate = False

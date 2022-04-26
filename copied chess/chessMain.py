@@ -31,12 +31,115 @@ images={'wP': p.transform.scale(p.image.load("images/" + 'wp' + ".png"), (SQUARE
         'bB': p.transform.scale(p.image.load("images/" + 'bB' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
         'bK': p.transform.scale(p.image.load("images/" + 'bK' + ".png"), (SQUARE_SIZE, SQUARE_SIZE)),
         'bQ': p.transform.scale(p.image.load("images/" + 'bQ' + ".png"), (SQUARE_SIZE, SQUARE_SIZE))}
+#this is for a two player game with AI hints
+def mainAI():
+    p.init()
+    screen = p.display.set_mode((BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT))
+    clock = p.time.Clock()
+    screen.fill(p.Color("white"))
+    game_state = ChessEngine.state()
+    valid_moves = game_state.ValidMoves()
+    move_made = False  # flag variable for when a move is made
+    animate = False  # flag variable for when we should animate a move
+    running = True
+    square_selected = ()  # no square is selected initially, this will keep track of the last click of the user (tuple(row,col))
+    player_clicks = []  # this will keep track of player clicks (two tuples)
+    game_over = False
+    move_undone = False
+    move_finder_process = None
+    move_log_font = p.font.SysFont("Arial", 14, False, False)
 
+    while running:
+        for e in p.event.get():
+            if e.type == p.QUIT:
+                p.quit()
+                sys.exit()
+            # mouse handler
+            elif e.type == p.MOUSEBUTTONDOWN:
+                if not game_over:
+                    location = p.mouse.get_pos()  # (x, y) location of the mouse
+                    col = location[0] // SQUARE_SIZE
+                    row = location[1] // SQUARE_SIZE
+                    if square_selected == (row, col) or col >= 8:  # user clicked the same square twice
+                        square_selected = ()  # deselect
+                        player_clicks = []  # clear clicks
+                    else:
+                        square_selected = (row, col)
+                        player_clicks.append(square_selected)  # append for both 1st and 2nd click
+                    if len(player_clicks) == 2:  # after 2nd click
+                        move = ChessEngine.Move(player_clicks[0], player_clicks[1], game_state.board)
+                        for i in range(len(valid_moves)):
+                            if move == valid_moves[i]:
+                                game_state.makeMove(valid_moves[i])
+                                move_made = True
+                                animate = True
+                                square_selected = ()  # reset user clicks
+                                player_clicks = []
+                        if not move_made:
+                            player_clicks = [square_selected]
+
+            # key handler
+            elif e.type == p.KEYDOWN:
+                if e.key == p.K_z:  # undo when 'z' is pressed
+                    game_state.undoMove()
+                    move_made = True
+                    animate = False
+                    game_over = False
+                    move_undone = True
+                if e.key == p.K_r:  # reset the game when 'r' is pressed
+                    game_state = ChessEngine.state()
+                    valid_moves = game_state.ValidMoves()
+                    square_selected = ()
+                    player_clicks = []
+                    move_made = False
+                    animate = False
+                    game_over = False
+                    move_undone = True
+                if e.key == p.K_h: # give hint when h is pressed
+                    if not game_over:
+                        return_queue = Queue()  # used to pass data between threads
+                        move_finder_process = Process(target=ChessAI.findBestMove, args=(game_state, valid_moves, return_queue))
+                        move_finder_process.start()
+                        move_finder_process.join()
+                        if not move_finder_process.is_alive():
+                            ai_move = return_queue.get()
+                            if ai_move is None:
+                                ai_move = ChessAI.findRandomMove(valid_moves)
+                            game_state.makeMove(ai_move)
+                            move_made = True
+                            animate = True
+
+        if move_made:
+            if animate:
+                animateMove(game_state.move_log[-1], screen, game_state.board, clock)
+            valid_moves = game_state.ValidMoves()
+            move_made = False
+            animate = False
+            move_undone = False
+
+        drawBoard(screen)
+        highlightSquares(screen, game_state, valid_moves, square_selected)
+        drawPieces(screen, game_state.board)
+
+        if not game_over:
+            drawMoveLog(screen, game_state, move_log_font)
+
+        if game_state.checkmate:
+            game_over = True
+            if game_state.white_to_move:
+                drawEndGameText(screen, "Black wins by checkmate")
+            else:
+                drawEndGameText(screen, "White wins by checkmate")
+
+        elif game_state.stalemate:
+            game_over = True
+            drawEndGameText(screen, "Stalemate")
+
+        clock.tick(MAX_FPS)
+        p.display.flip()
+
+#for a game against AI
 def main():
-    """
-    The main driver for our code.
-    This will handle user input and updating the graphics.
-    """
     p.init()
     screen = p.display.set_mode((BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT))
     clock = p.time.Clock()
@@ -98,7 +201,7 @@ def main():
                         ai_thinking = False
                     move_undone = True
                 if e.key == p.K_r:  # reset the game when 'r' is pressed
-                    game_state = ChessEngine.GameState()
+                    game_state = ChessEngine.state()
                     valid_moves = game_state.ValidMoves()
                     square_selected = ()
                     player_clicks = []
@@ -115,7 +218,8 @@ def main():
             if not ai_thinking:
                 ai_thinking = True
                 return_queue = Queue()  # used to pass data between threads
-                move_finder_process = Process(target=ChessAI.findBestMove, args=(game_state, valid_moves, return_queue))
+                move_finder_process = Process(target=ChessAI.findBestMove,
+                                              args=(game_state, valid_moves, return_queue))
                 move_finder_process.start()
 
             if not move_finder_process.is_alive():
@@ -159,7 +263,7 @@ def main():
 # draw squares on the board
 def drawBoard(screen):
     global colors
-    colors = [p.Color("white"), p.Color(choice)]
+    colors = [p.Color("white"), p.Color("grey")]
     for row in range(DIMENSION):
         for column in range(DIMENSION):
             color = colors[((row + column) % 2)]
@@ -273,9 +377,101 @@ def animateMove(move, screen, board, clock):
         clock.tick(60)
 
 
+mainClock = p.time.Clock()
+from pygame.locals import *
+
+p.init()
+p.display.set_caption('Chess AI')
+screen = p.display.set_mode((BOARD_WIDTH + MOVE_LOG_PANEL_WIDTH, BOARD_HEIGHT), 0, 32)
+
+font = p.font.SysFont(None, 20)
+
+
+# text draws on screen
+def draw_text(text, font, color, surface, x, y):
+    textobj = font.render(text, 1, color)
+    textrect = textobj.get_rect()
+    textrect.topleft = (x, y)
+    surface.blit(textobj, textrect)
+
+
+# loading images
+AI_img = p.image.load('AI_img.png').convert_alpha()
+PVP_img = p.image.load('PVP_img.png').convert_alpha()
+title_img = p.image.load('title_pic.png').convert_alpha()
+instruc_img = p.image.load('Instructions.png').convert_alpha()
+click = False
+
+
+class Title():
+    def __init__(self, x, y, image, scale):
+        width = image.get_width()
+        height = image.get_height()
+        self.image = p.transform.scale(image, (int(width * scale), int(height * scale)))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+
+    def draw(self, surface):
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+
+
+title = Title(33, 75, title_img, 0.8)
+AI_button = Title(190, 250, AI_img, 0.7)
+PVP_button = Title(465, 250, PVP_img, 0.7)
+instruc = Title(245, 320, instruc_img, 0.6)
+
+
+class Background(p.sprite.Sprite):
+    def __init__(self, image_file, location):
+        p.sprite.Sprite.__init__(self)  # call Sprite initializer
+        self.image = p.image.load(image_file)
+        self.rect = self.image.get_rect()
+        self.rect.left, self.rect.top = location
+
+
+BackGround = Background('mi.png', [0, 0])
+
+
+def main_menu():
+    while True:
+
+        screen.fill([169, 169, 169])
+        screen.blit(BackGround.image, BackGround.rect)
+
+        mx, my = p.mouse.get_pos()
+
+        vsHuman = p.Rect(175, 275, 150, 25)
+        vsAI = p.Rect(450, 275, 150, 25)
+
+        if vsHuman.collidepoint((mx, my)):
+            if click:
+                main()
+        if vsAI.collidepoint((mx, my)):
+            if click:
+                mainAI()
+
+        p.draw.rect(screen, (255, 255, 255), vsHuman)
+        p.draw.rect(screen, (255, 255, 255), vsAI)
+        title.draw(screen)
+        AI_button.draw(screen)
+        PVP_button.draw(screen)
+        instruc.draw(screen)
+
+        click = False
+        for event in p.event.get():
+            if event.type == QUIT:
+                p.quit()
+                sys.exit()
+            # if event.type == KEYDOWN:
+            #     if event.key == K_ESCAPE:
+            #         p.quit()
+            #         sys.exit()
+            if event.type == MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+
+        p.display.update()
+        mainClock.tick(60)
+
 if __name__ == "__main__":
-    choice=input("What color would you like your chess board to be in: (please enter all the lower case)")
-    # if choice not in p.color():
-    #     print("Invalid color")
-    #     choice = input("What color would you like your chess board to be in: (please enter all the lower case)")
-    main()
+    main_menu()
