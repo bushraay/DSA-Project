@@ -6,7 +6,7 @@ A chess AI application made in python for our DSA project.It is the implementati
 
 References:
 
-Eddie Sharick
-BaralTech
-Mikolaj Skrzypczak's repository: https://github.com/mikolaj-skrzypczak/chess-engine
-BaralTech's repository: https://github.com/baraltech/Menu-System-PyGame
+Eddie Sharick <br/>
+BaralTech <br/>
+Mikolaj Skrzypczak's repository: https://github.com/mikolaj-skrzypczak/chess-engine <br/>
+BaralTech's repository: https://github.com/baraltech/Menu-System-PyGame <br/>
